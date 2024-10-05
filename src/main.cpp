@@ -1,42 +1,60 @@
 #include <iostream>
 #include <filesystem>
+#include <string>
 #include <thread>
 #include <chrono>
 
 namespace fs = std::filesystem;
 
-void copy_directory(const fs::path& sourceDir, const fs::path& destDir)
+void FolderSynchronization(const fs::path& FolderA, const fs::path& FolderB)
 {
-    if (!fs::exists(sourceDir) || !fs::is_directory(sourceDir))
+
+    if (!fs::exists(FolderA) || !fs::is_directory(FolderB))
     {
-        throw std::runtime_error("Source directory does not exist or is not a directory.");
+        throw std::runtime_error("Folder_A: doesn't exist");
     }
 
-    if (!fs::exists(destDir))
+    if (!fs::exists(FolderB))
     {
-        fs::create_directories(destDir);
+        throw std::runtime_error("Folder_B: doesn't exist");
     }
 
-    for (const auto& entry : fs::directory_iterator(sourceDir))
+    for (const auto& entry : fs::directory_iterator(FolderA))
     {
-        const auto& path = entry.path();
-        auto dest = destDir / path.filename();
+        const auto& sourcePath = entry.path();
+        auto destinationPath = FolderB / sourcePath.filename();
 
-        if (fs::is_directory(path))
+        if (fs::is_directory(sourcePath))
         {
-            copy_directory(path, dest);
-        }
-
-        else if (fs::is_regular_file(path))
-        {
-            if (!fs::exists(dest))
+            if (!fs::exists(destinationPath))
             {
-                fs::copy_file(path, dest, fs::copy_options::skip_existing);
-                std::cout << "Copied: " << std::endl;
+                fs::create_directories(destinationPath);
             }
-            else
+            FolderSynchronization(sourcePath, destinationPath);
+        }
+        else if (fs::is_regular_file(sourcePath))
+        {
+            if (!fs::exists(destinationPath))
             {
-                std::cout << "File done, Skipping: " << std::endl;
+                fs::copy_file(sourcePath, destinationPath, fs::copy_options::skip_existing);
+            }
+        }
+    }
+
+    for (const auto& entry : fs::directory_iterator(FolderB))
+    {
+        const auto& destinationPath = entry.path();
+        auto sourcePath = FolderA / destinationPath.filename();
+
+        if (!fs::exists(sourcePath))
+        {
+            if (fs::is_directory(destinationPath))
+            {
+                fs::remove_all(destinationPath);
+            }
+            else if (fs::is_regular_file(destinationPath))
+            {
+                fs::remove(destinationPath);
             }
         }
     }
@@ -47,20 +65,17 @@ int main()
     std::string source = "C://Users/gorkh/OneDrive/Desktop/A";
     std::string destination = "C://Users/gorkh/OneDrive/Desktop/B";
 
-    while (true)
+    for (;;)
     {
         try
         {
-            copy_directory(source, destination);
-            std::cout << "Files copied successfully!" << std::endl;
+            FolderSynchronization(source, destination);
+            std::cerr << "SYnchronization" << "\n";
         }
         catch (const std::exception& e)
         {
-            std::cerr << "Error: " << e.what() << std::endl;
+            std::cerr << "Error: " << e.what() << "\n";
         }
-
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::this_thread::sleep_for(std::chrono::seconds(5));
     }
-
-    return 0;
 }
