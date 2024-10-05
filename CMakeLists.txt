@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.30.4 FATAL_ERROR)
 
-project(PeriodicFolderCopy)
+project(FolderSynchronization)
 
-add_executable(PeriodicFolderCopy src/main.cpp)
+add_executable(FolderSynchronizator src/main.cpp)
